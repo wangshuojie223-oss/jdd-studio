@@ -1,0 +1,29 @@
+# ── 本机状态与运行时数据（绝不入库） ──
+# Chrome 登录态（cookie 本机加密，不可迁移）
+chrome-profile/
+# 生成候选图
+candidates/
+# 成品图
+saved_images/
+# 待扩图 / 已扩图
+review_pending/
+review_done/
+# 参考图 + 角色表缓存
+refs/
+# 失败截图与页面 dump
+debug/
+# 任务数据库（含 WAL 文件）
+tasks.db
+tasks.db-shm
+tasks.db-wal
+# 保存位置记忆
+save_dirs.json
+# 运行日志
+server.log
+
+# ── 依赖与缓存 ──
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.DS_Store
