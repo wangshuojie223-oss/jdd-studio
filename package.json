@@ -1,0 +1,13 @@
+{
+  "name": "jdd-studio",
+  "version": "2.2.2",
+  "private": true,
+  "scripts": {
+    "setup": "uv sync",
+    "login": "uv run python -m app.login",
+    "calibrate": "uv run python -m app.calibrate",
+    "prompt": "uv run python -m app.promptgen",
+    "start": "uv run uvicorn app.main:app --host 127.0.0.1 --port 8321",
+    "dev": "uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8321"
+  }
+}

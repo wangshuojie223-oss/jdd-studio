@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="%23d43d2a"><polygon points="6,26 94,18 94,32 6,40"/><rect x="6" y="44" width="88" height="42" rx="8"/></g><g fill="white"><polygon points="20,24.7 28,24 26.5,37.5 18.5,38.2"/><polygon points="44,22.6 52,21.8 50.5,35.3 42.5,36.1"/><polygon points="68,20.4 76,19.6 74.5,33.1 66.5,33.9"/><circle cx="10" cy="36" r="4"/></g></svg>'>
+<title>剧多多文生图工作台</title>
+<style>
+  :root {
+    --bg:#f2f3f5; --card:#ffffff; --line:#e3e5ea; --ink:#1b1e23; --ink2:#3a3f47;
+    --sub:#737a85; --acc:#d43d2a; --acc-d:#b02f1f; --acc-t:#fbeeec;
+    --ok:#1e9e6a; --ok-t:#e5f5ee; --warn:#c97a10; --warn-t:#fdf1de; --gold:#b98a2e;
+    --f-serif:"Songti SC","STSong","SimSun",serif;
+    --f-mono:"SF Mono",Menlo,Consolas,monospace;
+  }
+  * { box-sizing:border-box; margin:0; }
+  body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--ink); padding:20px 20px 24px; max-width:1300px; margin:0 auto; }
+  /* ── 顶部品牌条（眉题 + 发丝线 + 朱砂刻度） ── */
+  .topbar { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:14px; border-bottom:1px solid var(--line); padding-bottom:14px; position:relative; }
+  .topbar::after { content:''; position:absolute; bottom:-1px; left:0; width:72px; height:2px; background:var(--acc); }
+  h1 { font-family:var(--f-serif); font-size:28px; letter-spacing:2px; font-weight:700; display:flex; align-items:center; }
+  .logo-mark { width:32px; height:32px; margin-right:10px; flex:none; }
+  #cfgline { font-family:var(--f-mono); font-size:11px; color:var(--sub); margin-top:5px; }
+  /* ── 模式切换：分段开关（大目标，一眼可辨） ── */
+  .seg { display:inline-flex; background:#e6e8ec; border-radius:12px; padding:4px; gap:4px; }
+  .seg button { background:transparent; color:var(--sub); border:0; border-radius:9px; padding:10px 26px; font-size:14px; font-weight:600; }
+  .seg button:hover { color:var(--ink); background:rgba(255,255,255,.65); }
+  .seg button.mode-on { background:#fff; color:var(--acc); box-shadow:0 1px 4px rgba(0,0,0,.14); }
+  /* ── 场记板 · 工序导航（签名元素，吸顶跟随） ── */
+  #clapStrip { position:sticky; top:10px; z-index:50; background:#17191d; border-radius:10px; overflow:hidden; margin-bottom:18px; box-shadow:0 4px 14px rgba(0,0,0,.18); }
+  .clap-teeth { height:9px; background:repeating-linear-gradient(-55deg,#f5f6f8 0 13px,#17191d 13px 26px); }
+  .steps { display:flex; }
+  .step { flex:1; display:flex; align-items:baseline; gap:8px; padding:11px 14px; cursor:pointer; border-left:1px solid #2b2f36; user-select:none; }
+  .step:first-child { border-left:0; }
+  .step:hover { background:#22262d; }
+  .snum { font-family:var(--f-serif); font-size:19px; color:#fff; font-weight:700; }
+  .slabel { font-size:12px; font-weight:600; color:#e7eaef; white-space:nowrap; }
+  .sstat { font-family:var(--f-mono); font-size:10px; color:#848b96; margin-left:auto; white-space:nowrap; }
+  .step.done .snum, .step.done .sstat { color:#57c98f; }
+  .step.cur { box-shadow:inset 0 -2px 0 var(--acc); background:#1e2126; }
+  .step.cur .snum { color:var(--acc); }
+  /* ── 卡片与标题（宋体斜体工序号 + 发丝分隔线） ── */
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin-bottom:16px; box-shadow:0 1px 2px rgba(20,24,30,.04); transition:box-shadow .2s; }
+  .card:hover { box-shadow:0 4px 16px rgba(20,24,30,.08); }
+  h2 { font-size:15px; margin-bottom:12px; display:flex; align-items:center; gap:10px; font-weight:700; }
+  .stepno { font-family:var(--f-serif); font-style:italic; font-weight:700; font-size:24px; color:var(--acc); line-height:1; }
+  .h2rule { flex:1; border-top:1px solid var(--line); min-width:20px; }
+  .sub { color:var(--sub); font-size:12px; }
+  /* ── 表单 ── */
+  textarea, input[type=text], select { width:100%; border:1px solid var(--line); border-radius:9px; padding:8px 10px; font-size:13px; font-family:inherit; background:#fff; color:var(--ink); }
+  textarea:focus, input:focus, select:focus { outline:2px solid var(--acc); outline-offset:-1px; border-color:transparent; }
+  /* ── 按钮：主操作墨色实心，危险朱砂，确认绿 ── */
+  button { background:var(--ink); color:#fff; border:0; border-radius:9px; padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer; transition:background .15s, transform .05s; box-shadow:0 1px 3px rgba(20,24,30,.18); }
+  button:hover { background:#000; }
+  button:active { transform:scale(.97); }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  button.ghost { background:#fff; color:var(--ink2); border:1px solid var(--line); font-weight:500; box-shadow:none; }
+  button.ghost:hover { border-color:var(--acc); color:var(--acc); background:#fff; }
+  button.ok { background:var(--ok); }
+  button.ok:hover { background:#17855a; }
+  button.danger { background:var(--acc); font-weight:600; }
+  button.danger:hover { background:var(--acc-d); }
+  button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline:2px solid var(--acc); outline-offset:1px; }
+  .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .badge { font-family:var(--f-mono); font-size:11px; padding:2px 8px; border-radius:10px; background:#eef0f3; color:var(--sub); }
+  .badge.queued { background:#eef0f3; } .badge.filling,.badge.generating,.badge.downloading,.badge.navigating,.badge.dispatching,.badge.collecting { background:var(--warn-t); color:var(--warn); }
+  .badge.done { background:var(--ok-t); color:var(--ok); } .badge.failed { background:#fbe9e7; color:var(--acc); }
+  .badge.cancelled { background:#eef0f3; color:#8a8f99; }
+  .badge.poster { background:var(--acc-t); color:var(--acc); }
+  .badge.tone-light { background:var(--warn-t); color:var(--warn); }
+  .badge.tone-dark { background:#26292f; color:#e5e7eb; }
+  /* 提示词方案卡：勾选态 = 左侧朱砂杠，未勾选淡化为虚线 */
+  .schemes { display:grid; grid-template-columns:repeat(auto-fill,minmax(360px,1fr)); gap:12px; }
+  .scheme { border:2px solid var(--line); border-left:5px solid var(--acc); border-radius:10px; padding:12px; transition:opacity .15s; }
+  .scheme.scheme-off { opacity:.5; border-left-color:var(--line); border-style:dashed; }
+  .scheme h3 { font-size:13px; margin-bottom:8px; color:var(--ink); }
+  .scheme textarea { height:120px; resize:vertical; font-size:12px; line-height:1.6; background:#fafbfc; }
+  .scheme .note { font-size:11px; color:var(--sub); margin-top:6px; }
+  .facebase { font-size:12px; color:var(--ink2); background:var(--acc-t); border-left:3px solid var(--acc); border-radius:6px; padding:8px 10px; margin-bottom:12px; }
+  /* 画廊 */
+  .gen-block { border-top:1px dashed var(--line); padding-top:12px; margin-top:12px; }
+  .gen-head { font-size:12px; color:var(--sub); margin-bottom:8px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .caret { cursor:pointer; user-select:none; color:var(--sub); font-size:13px; width:16px; text-align:center; flex:none; }
+  .caret:hover { color:var(--acc); }
+  button.ghost.del:hover { border-color:var(--acc); color:var(--acc); }
+  .gen-prompt { max-width:640px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+  .gen-prompt:hover { color:var(--acc); }
+  .thumbs { display:flex; gap:10px; flex-wrap:wrap; }
+  .thumb { position:relative; width:126px; }
+  .thumb:hover { z-index:5; }  /* 悬停放大时压过相邻图，不被盖住 */
+  .thumb img { width:126px; height:224px; object-fit:cover; border-radius:9px; border:2px solid var(--line); display:block; cursor:zoom-in; transition:transform .18s, box-shadow .18s; }
+  .thumb img:hover { transform:scale(1.04); box-shadow:0 6px 16px rgba(20,24,30,.18); }
+  .thumb.picked img { border-color:var(--acc); box-shadow:0 0 0 3px rgba(212,61,42,.22); }
+  .thumb.picked::after { content:'✓'; position:absolute; top:6px; right:6px; width:20px; height:20px; background:var(--acc); color:#fff; border-radius:50%; display:grid; place-items:center; font-size:12px; font-weight:700; pointer-events:none; z-index:2; }
+  /* 参考图管理 */
+  .ref-item { position:relative; width:84px; }
+  .ref-item:hover { z-index:5; }
+  .ref-item img { width:84px; height:112px; object-fit:cover; border-radius:9px; border:2px solid var(--acc); display:block; transition:transform .18s, box-shadow .18s; }
+  .ref-item img:hover { transform:scale(1.05); box-shadow:0 6px 14px rgba(20,24,30,.18); }
+  .ref-item .num { position:absolute; top:4px; left:4px; background:var(--acc); color:#fff; font-size:11px; border-radius:8px; padding:1px 7px; z-index:2; }
+  .ref-item .del { position:absolute; top:4px; right:4px; background:rgba(0,0,0,.55); color:#fff; border:0; border-radius:50%; width:20px; height:20px; padding:0; font-size:11px; line-height:1; cursor:pointer; box-shadow:none; z-index:2; }
+  .ref-item .nm { font-size:11px; margin-top:3px; text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:84px; }
+  .ref-item .nm-input { width:100%; box-sizing:border-box; font-size:11px; border:1px solid transparent; background:transparent; color:inherit; text-align:center; border-radius:4px; padding:1px 2px; margin-top:3px; }
+  .ref-item .nm-input:hover, .ref-item .nm-input:focus { border-color:var(--line); outline:none; }
+  .ref-badge { display:inline-block; font-size:10px; padding:0 5px; border-radius:6px; margin-top:2px; }
+  .ref-badge.hi { background:var(--ok-t); color:var(--ok); }
+  .ref-badge.mid { background:var(--warn-t); color:var(--warn); }
+  .ref-badge.lo { background:#fbe9e7; color:var(--acc); }
+  /* 参考图双入口：两种添加方式各自独立成卡，一眼分清 */
+  .ref-adder { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px; }
+  @media (max-width:900px) { .ref-adder { grid-template-columns:1fr; } }
+  .adder { border:1.5px dashed var(--line); border-radius:10px; padding:12px 14px; background:#fafbfc; transition:border-color .15s; }
+  .adder:hover { border-color:var(--acc); }
+  .adder-t { font-size:13px; font-weight:700; margin-bottom:8px; }
+  .adder-t .sub { font-weight:400; }
+  .fname { max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* 复审区 */
+  .rv { position:relative; width:126px; }
+  .rv img { width:126px; height:224px; object-fit:cover; border-radius:9px; border:2px solid var(--line); display:block; cursor:zoom-in; }
+  .rv .qj { width:100%; margin-top:4px; }
+  /* 安全区叠加层（比例来自平台规范图：顶部裁剪12.6% / 警戒线2.8% / 安全区62.6% / 数据区9% / 底部裁剪13%） */
+  .safezone { position:absolute; inset:0; top:0; height:224px; pointer-events:none; display:none; border-radius:9px; overflow:hidden; }
+  .safezone.on { display:block; }
+  .sz { position:absolute; left:0; right:0; }
+  .sz.top    { top:0;     height:12.6%; background:rgba(212,61,42,.45); }
+  .sz.warnT  { top:12.6%; height:2.8%;  background:rgba(201,122,16,.6); }
+  .sz.safe   { top:15.4%; height:62.6%; outline:2px dashed rgba(30,158,106,.95); outline-offset:-2px; }
+  .sz.warnB  { top:78%;   height:9%;    background:rgba(201,122,16,.6); }
+  .sz.bottom { top:87%;   height:13%;   background:rgba(212,61,42,.45); }
+  .thumb input[type=checkbox] { position:absolute; top:6px; left:6px; width:20px; height:20px; accent-color:var(--acc); cursor:pointer; z-index:2; }  /* z-index 修复：transform 会让图片进入定位层盖住复选框 */
+  .err { color:var(--acc); font-size:12px; margin-top:6px; }
+  /* 底部停靠区：多任务进度卡（流水线并行，每个任务一条） + 状态栏 */
+  #dock { position:sticky; bottom:0; }
+  #progStack { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
+  .prog-card { background:#17191d; color:#e5e7eb; border-radius:10px; padding:9px 14px; box-shadow:0 4px 14px rgba(0,0,0,.2); }
+  .prog-head { display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:12px; margin-bottom:6px; }
+  .prog-head b { font-weight:600; }
+  .prog-head span { font-family:var(--f-mono); font-size:11px; color:#aeb4bd; white-space:nowrap; }
+  .prog-bar { height:6px; background:#33373e; border-radius:3px; overflow:hidden; }
+  .prog-fill { height:100%; width:0%; background:linear-gradient(90deg,var(--acc),#f0784f); border-radius:3px; transition:width .8s ease; }
+  #statusbar { background:#17191d; color:#e5e7eb; border-radius:10px; padding:10px 16px; font-size:12px; display:flex; gap:16px; align-items:center; box-shadow:0 -2px 12px rgba(0,0,0,.12); }
+  #statusbar .dot { width:8px; height:8px; border-radius:50%; background:#57c98f; display:inline-block; }
+  #statusbar .dot.off { background:var(--acc); }
+  #btnStop { white-space:nowrap; }
+  /* 灯箱 */
+  dialog { border:0; border-radius:12px; padding:10px; background:#14161a; }
+  dialog img { max-width:80vw; max-height:80vh; display:block; }
+  dialog::backdrop { background:rgba(20,22,26,.72); }
+  .hidden { display:none !important; }
+  /* 目录浏览器 */
+  #dirDialog { padding:0; background:transparent; }
+  .dir-panel { width:540px; background:#fff; border-radius:12px; padding:18px; color:var(--ink); box-shadow:0 12px 40px rgba(0,0,0,.25); }
+  .dir-panel h3 { font-size:14px; margin-bottom:10px; }
+  #dirPath { font-family:var(--f-mono); font-size:12px; color:var(--sub); word-break:break-all; flex:1; }
+  #dirList { height:260px; overflow:auto; border:1px solid var(--line); border-radius:9px; padding:6px; margin:10px 0; background:#fafbfc; }
+  .dir-item { padding:6px 10px; border-radius:6px; cursor:pointer; font-size:13px; }
+  .dir-item:hover { background:var(--acc-t); color:var(--acc); }
+  .qj { padding:5px 10px; font-size:12px; }
+</style>
+</head>
+<body>
+
+<!-- 顶部品牌条：印章标题 + 配置行 + 模式分段开关 -->
+<header class="topbar">
+  <div class="brand">
+    <h1><svg class="logo-mark" viewBox="0 0 100 100" aria-hidden="true"><g fill="var(--acc)"><polygon points="6,26 94,18 94,32 6,40"/><rect x="6" y="44" width="88" height="42" rx="8"/></g><g fill="#fff"><polygon points="20,24.7 28,24 26.5,37.5 18.5,38.2"/><polygon points="44,22.6 52,21.8 50.5,35.3 42.5,36.1"/><polygon points="68,20.4 76,19.6 74.5,33.1 66.5,33.9"/><circle cx="10" cy="36" r="4"/></g></svg>剧多多文生图工作台</h1>
+    <div id="cfgline">加载配置中…</div>
+  </div>
+  <div class="seg" id="modeTabs">
+    <button id="tabChar">👤 角色图</button>
+    <button id="tabPoster">🎬 剧本海报</button>
+  </div>
+</header>
+
+<!-- 场记板 · 工序导航：实时显示每步状态，点击直达对应卡片（吸顶跟随，长页面不迷路） -->
+<nav id="clapStrip">
+  <div class="clap-teeth"></div>
+  <div class="steps">
+    <div class="step" id="step1"><span class="snum">1</span><span class="slabel" id="slabel1">角色描述</span><span class="sstat" id="sstat1"></span></div>
+    <div class="step" id="step2"><span class="snum">2</span><span class="slabel">提示词方案</span><span class="sstat" id="sstat2"></span></div>
+    <div class="step" id="step3"><span class="snum">3</span><span class="slabel">选图与保存</span><span class="sstat" id="sstat3"></span></div>
+    <div class="step" id="step4"><span class="snum">4</span><span class="slabel">扩图复审</span><span class="sstat" id="sstat4"></span></div>
+  </div>
+</nav>
+
+<!-- ① 角色描述区（角色图模式） -->
+<div class="card" id="charCard">
+  <h2><span class="stepno">01</span>角色描述<span class="h2rule"></span></h2>
+  <div class="row" style="margin-bottom:10px">
+    <label style="font-size:13px">提示词模型：</label>
+    <select id="modelSel" style="width:220px"></select>
+  </div>
+  <textarea id="descInput" rows="3" placeholder="用自然语言描述角色，如：一个冷酷的女杀手，35 岁左右，东欧血统"></textarea>
+  <div class="row" style="margin-top:10px">
+    <button id="btnPrompts">✨ 生成提示词</button>
+    <select id="countSel" style="width:96px">
+      <option value="2">2 组</option>
+      <option value="4">4 组</option>
+      <option value="6" selected>6 组</option>
+      <option value="8">8 组</option>
+    </select>
+    <span class="sub" id="promptMsg"></span>
+  </div>
+</div>
+
+<!-- ① 剧本上传区（剧本海报模式） -->
+<div class="card hidden" id="posterCard">
+  <h2><span class="stepno">01</span>上传剧本<span class="h2rule"></span><span class="sub" style="margin:0">.docx 格式，AI 通读剧本后出 8 组海报提示词（6 亮调 2 暗调）</span></h2>
+  <div class="row" style="margin-bottom:10px">
+    <label style="font-size:13px">提示词模型：</label>
+    <select id="posterModelSel" style="width:220px"></select>
+  </div>
+  <div class="row">
+    <input type="file" id="scriptFile" accept=".docx" style="display:none">
+    <button class="ghost" id="scriptFileBtn">📄 选择剧本文件</button>
+    <span class="sub fname" id="scriptFileName">未选择文件</span>
+    <button id="btnScript">✨ 分析剧本并生成 8 组海报提示词</button>
+    <span class="sub" id="scriptMsg"></span>
+  </div>
+  <h3 style="font-size:13px;margin:14px 0 8px;display:flex;align-items:center;gap:8px">角色参考图 <span class="sub">（编号顺序即提示词里的「参考图片N」；每次启动工作台自动清空）</span>
+    <button class="ghost qj" id="btnClearRefs" style="margin-left:auto" title="删除全部参考图（角色表保留）">🧹 清空参考图</button>
+  </h3>
+  <div class="thumbs" id="refList"></div>
+  <!-- 两种参考图添加方式：各自独立成卡，互不混淆 -->
+  <div class="ref-adder">
+    <div class="adder">
+      <div class="adder-t">方式一 · 单张上传 <span class="sub">（逐张添加，名字留空则 AI 自动识别）</span></div>
+      <div class="row">
+        <input type="file" id="refFile" accept="image/*" style="display:none">
+        <button class="ghost" id="refFileBtn">📷 选择图片</button>
+        <span class="sub fname" id="refFileName">未选择图片</span>
+        <input type="text" id="refName" placeholder="角色名（可留空）" style="width:150px">
+        <button id="btnAddRef">➕ 添加参考图</button>
+      </div>
+    </div>
+    <div class="adder">
+      <div class="adder-t">方式二 · 候选表整单导入 <span class="sub">（整单替换现有清单）</span></div>
+      <div class="row">
+        <button class="ghost" id="btnImportSheet">📥 选择飞书候选表 xlsx 导入</button>
+        <span class="sub">取「定版」列（或黄底格）的图，缺图行自动跳过</span>
+        <input type="file" id="sheetFile" accept=".xlsx" style="display:none">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ② 提示词修改窗口（剧本海报模式） -->
+<div class="card hidden" id="p_schemeCard">
+  <h2><span class="stepno">02</span>海报提示词修改窗口<span class="h2rule"></span><span class="sub" style="margin:0">可直接编辑文字；勾选要生成的方案，或点「全部生成」</span></h2>
+  <div class="facebase hidden" id="p_faceBase"></div>
+  <div class="schemes" id="p_schemes"></div>
+  <div class="row" style="margin-top:12px">
+    <label style="font-size:13px">用哪张资产卡生成：</label>
+    <select id="p_charSelect" style="width:220px"><option value="">（加载角色卡中…）</option></select>
+    <button class="ghost" id="p_btnRefreshChars" title="重新从剧多多抓取角色卡列表">🔄</button>
+    <select id="p_countPerGroup" style="width:150px" title="每组提示词生成的图片张数：6 张 = 剧多多选 3 张连点两次生成">
+      <option value="4" selected>每组 4 张</option>
+      <option value="6">每组 6 张（3张×2次）</option>
+    </select>
+    <button class="ok" id="p_btnGenerate" disabled>🚀 生成勾选方案</button>
+    <button class="ghost" id="p_btnGenAll" disabled>⚡ 全部生成</button>
+    <span class="sub" id="p_genMsg"></span>
+  </div>
+</div>
+
+<!-- ② 提示词修改窗口（角色图模式） -->
+<div class="card hidden" id="schemeCard">
+  <h2><span class="stepno">02</span>角色提示词修改窗口<span class="h2rule"></span><span class="sub" style="margin:0">可直接编辑文字；勾选要生成的方案，或点「全部生成」</span></h2>
+  <div class="facebase hidden" id="faceBase"></div>
+  <div class="schemes" id="schemes"></div>
+  <div class="row" style="margin-top:12px">
+    <label style="font-size:13px">用哪张角色卡生成：</label>
+    <select id="charSelect" style="width:220px"><option value="">（加载角色卡中…）</option></select>
+    <button class="ghost" id="btnRefreshChars" title="重新从剧多多抓取角色卡列表">🔄</button>
+    <select id="countPerGroup" style="width:150px" title="每组提示词生成的图片张数：6 张 = 剧多多选 3 张连点两次生成">
+      <option value="4" selected>每组 4 张</option>
+      <option value="6">每组 6 张（3张×2次）</option>
+    </select>
+    <button class="ok" id="btnGenerate" disabled>🚀 生成勾选方案</button>
+    <button class="ghost" id="btnGenAll" disabled>⚡ 全部生成</button>
+    <span class="sub" id="genMsg"></span>
+  </div>
+</div>
+
+<!-- ③ 选择窗口 -->
+<div class="card" id="galleryCard">
+  <h2><span class="stepno">03</span>选择窗口<span class="h2rule"></span><span class="sub" style="margin:0">每组默认折叠，点 ▸ 展开勾选；🗑 可删除</span></h2>
+  <div class="row" style="margin-bottom:6px">
+    <button id="btnRegen" class="ghost" disabled>🔁 按原提示词再生成</button>
+    <button id="btnEdit" class="ghost" disabled>✏️ 修改提示词再生成</button>
+    <button id="btnSave" class="ok" disabled>💾 保存选定图片</button>
+    <button id="btnToReview" class="hidden">🔧 送去扩图</button>
+    <label style="font-size:13px">保存到：</label>
+    <select id="saveDirSel" style="width:300px"><option value="default">（加载中…）</option></select>
+    <span class="sub" id="saveMsg"></span>
+  </div>
+  <div id="gallery"><div class="sub">还没有生成记录</div></div>
+</div>
+
+<!-- ④ 复审 · AI 扩图（剧本海报模式） -->
+<div class="card hidden" id="reviewCard">
+  <h2><span class="stepno">04</span>复审 · AI 扩图<span class="h2rule"></span><span class="sub" style="margin:0">剪映：画面 → 基础 → AI扩展，导出到「已扩图」文件夹</span>
+    <button class="ghost qj" id="btnSafezone" style="margin-left:auto">🛡 安全区：关</button>
+    <button class="ghost qj" id="btnOpenPending">📂 待扩图</button>
+    <button class="ghost qj" id="btnOpenDone">📂 已扩图</button>
+  </h2>
+  <h3 style="font-size:13px;margin:8px 0 6px;color:var(--sub)">待扩图（已送往剪映）</h3>
+  <div class="thumbs" id="reviewPending"><div class="sub">空</div></div>
+  <h3 style="font-size:13px;margin:14px 0 6px;color:var(--sub)">已扩图（剪映导出后自动出现在这里）</h3>
+  <div class="thumbs" id="reviewDone"><div class="sub">空</div></div>
+</div>
+
+<!-- ⑤ 停靠区：多任务进度卡（每个任务一条）+ 状态栏 -->
+<div id="dock">
+  <div id="progStack" class="hidden"></div>
+  <div id="statusbar">
+    <span><span class="dot" id="sseDot"></span> <span id="sseText">连接中…</span></span>
+    <span style="flex:1"></span>
+    <button class="danger hidden" id="btnStop">⏹ 终止全部任务</button>
+    <span id="lastEvent" style="text-align:right;color:#9aa0aa"></span>
+  </div>
+</div>
+
+<dialog id="lightbox" onclick="this.close()"><img id="lightboxImg"></dialog>
+
+<!-- 保存位置浏览器 -->
+<dialog id="dirDialog">
+  <div class="dir-panel" onclick="event.stopPropagation()">
+    <h3>📁 选择保存位置</h3>
+    <div class="row" style="margin-bottom:8px">
+      <button class="ghost qj" data-jump="home">🏠 主目录</button>
+      <button class="ghost qj" data-jump="desktop">🖥 桌面</button>
+      <button class="ghost qj" data-jump="downloads">⬇ 下载</button>
+      <button class="ghost qj" data-jump="/Volumes">💽 外置硬盘</button>
+    </div>
+    <div class="row">
+      <button class="ghost" id="dirUp">⬆ 上级</button>
+      <span id="dirPath"></span>
+    </div>
+    <div id="dirList"></div>
+    <div class="row" style="margin-bottom:10px">
+      <input type="text" id="newDirName" placeholder="新文件夹名" style="flex:1">
+      <button class="ghost" id="btnMkdir">＋ 新建</button>
+    </div>
+    <div class="row">
+      <button class="ok" id="btnPickDir">✅ 选择此文件夹</button>
+      <button class="ghost" id="btnCancelDir">取消</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+const $ = s => document.querySelector(s);
+const state = { schemes: [], picked: new Set(), lastGen: null, config: null, expanded: new Set(),
+                mode: 'character', posterTitle: '', refs: [],
+                imgCount: 0,           // 当前模式画廊候选图总数（工序导航 ③ 显示）
+                reviewInfo: null,      // {p: 待扩, d: 已扩}（工序导航 ④ 显示）
+                // 每个模式独立的工作区：方案卡数据 data / 画廊勾选 picked / 最近生成批次 lastGen
+                // 切换模式时整体换入换出，保证「只能看到对应的内容」
+                ws: {
+                  character: { data: null, picked: new Set(), lastGen: null },
+                  poster:    { data: null, picked: new Set(), lastGen: null },
+                } };
+
+// 当前模式的提示词窗口元素（角色/海报各一套，海报一套 id 带 p_ 前缀）
+const CE = id => $(state.mode === 'poster' ? '#p_' + id : '#' + id);
+
+/* ---------- 模式切换（角色图 / 剧本海报） ---------- */
+function setMode(m) {
+  state.mode = m;
+  localStorage.setItem('mode', m);
+  $('#tabChar').classList.toggle('mode-on', m === 'character');
+  $('#tabPoster').classList.toggle('mode-on', m === 'poster');
+  $('#charCard').classList.toggle('hidden', m !== 'character');
+  $('#posterCard').classList.toggle('hidden', m !== 'poster');
+  $('#reviewCard')?.classList.toggle('hidden', m !== 'poster');
+  $('#btnToReview')?.classList.toggle('hidden', m !== 'poster');
+  // 提示词窗口两模式各一张卡，先都藏起来，有数据的那张由 renderSchemes 亮出
+  $('#schemeCard').classList.add('hidden');
+  $('#p_schemeCard').classList.add('hidden');
+  // 换入目标模式的工作区：方案卡 / 画廊勾选 / 最近生成批次（各模式互不串扰）
+  const slot = state.ws[m];
+  state.picked = slot.picked;
+  state.lastGen = slot.lastGen;
+  if (slot.data && slot.data.schemes.length) {
+    state.schemes = slot.data.schemes;
+    state.posterTitle = slot.data.posterTitle || '';
+    renderSchemes({schemes: slot.data.schemes, face_base: slot.data.face_base});
+  } else {
+    state.schemes = [];
+    state.posterTitle = '';
+    updateGenBtn();
+  }
+  refreshGallery();   // 画廊只显示当前模式的记录
+  updateActionBar();
+  if (m === 'poster') { refreshReview(); refreshRefs(); }
+  else updateSteps();
+}
+$('#tabChar').onclick = () => setMode('character');
+$('#tabPoster').onclick = () => setMode('poster');
+
+/* ---------- 场记板 · 工序导航（状态显示 + 点击直达） ---------- */
+function setStep(k, done, txt) {
+  const el = $('#step' + k);
+  if (!el) return;
+  el.classList.toggle('done', !!done);
+  $('#sstat' + k).textContent = txt || '';
+}
+function updateSteps() {
+  const poster = state.mode === 'poster';
+  $('#slabel1').textContent = poster ? '剧本与参考图' : '角色描述';
+  const n = state.schemes.length;
+  setStep(1, n > 0, n ? '✓ 已出词' : '');
+  setStep(2, n > 0, n ? `${n} 组方案` : '');
+  setStep(3, state.imgCount > 0, state.imgCount ? `${state.imgCount} 张候选` : '');
+  const rv = state.reviewInfo || {p: 0, d: 0};
+  setStep(4, rv.d > 0, (rv.p || rv.d) ? `待扩 ${rv.p} · 已扩 ${rv.d}` : '');
+  $('#step4').classList.toggle('hidden', !poster);
+  // 当前工序 = 第一个未完成的可见步骤（朱砂下划线）
+  let curSet = false;
+  for (const k of [1, 2, 3, 4]) {
+    const el = $('#step' + k);
+    if (el.classList.contains('hidden')) continue;
+    const done = el.classList.contains('done');
+    el.classList.toggle('cur', !curSet && !done);
+    if (!done) curSet = true;
+  }
+}
+// 点击步骤号直达对应卡片（按当前模式路由到本模式的卡片）
+const STEP_TARGETS = {
+  1: () => state.mode === 'poster' ? 'posterCard' : 'charCard',
+  2: () => state.mode === 'poster' ? 'p_schemeCard' : 'schemeCard',
+  3: () => 'galleryCard',
+  4: () => 'reviewCard',
+};
+for (const k of [1, 2, 3, 4]) {
+  $('#step' + k).onclick = () => {
+    const el = document.getElementById(STEP_TARGETS[k]());
+    if (el && !el.classList.contains('hidden')) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+  };
+}
+
+/* ---------- ① 参考图管理（海报模式） ---------- */
+async function refreshRefs() {
+  const r = await (await fetch('/api/refs')).json();
+  state.refs = r.refs;
+  $('#refList').innerHTML = r.refs.map((x, i) => {
+    let badge = '';
+    if (x.pending) badge = '<div><span class="ref-badge lo">⏳ 待识别</span></div>';
+    return `
+    <div class="ref-item">
+      <img src="${x.url}" loading="lazy" title="${escapeHtml(x.name)}">
+      <span class="num">${i + 1}</span>
+      <button class="del" onclick="delRef('${x.id}')" title="删除这张参考图">✕</button>
+      <input class="nm-input" value="${escapeHtml(x.name)}" placeholder="未命名"
+             onchange="renameRef('${x.id}', this.value)" title="点击可改名">
+      ${badge}
+    </div>`;
+  }).join('') || '<div class="sub">还没上传参考图（不上传则人物长相由 AI 自由发挥）</div>';
+}
+$('#btnAddRef').onclick = async () => {
+  const f = $('#refFile').files[0];
+  const name = $('#refName').value.trim();
+  if (!f) return alert('请选择图片文件');
+  const fd = new FormData();
+  fd.append('file', f);
+  fd.append('name', name);
+  const r = await (await fetch('/api/refs', {method: 'POST', body: fd})).json();
+  if (r.detail) return alert(r.detail);
+  $('#refFile').value = ''; $('#refName').value = '';
+  $('#refFileName').textContent = '未选择图片';
+  refreshRefs();
+};
+window.delRef = async id => {
+  if (!confirm('删除这张参考图？后面的参考图编号会顺移，已生成的提示词卡片请留意。')) return;
+  await fetch('/api/refs/delete', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id})});
+  refreshRefs();
+};
+window.renameRef = async (id, name) => {
+  await fetch('/api/refs/rename', {method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({id, name})});
+  refreshRefs();
+};
+/* 自定义文件选择器：隐藏原生 input，按钮代理 + 文件名回显 */
+$('#refFileBtn').onclick = () => $('#refFile').click();
+$('#refFile').onchange = () => { $('#refFileName').textContent = $('#refFile').files[0]?.name || '未选择图片'; };
+$('#scriptFileBtn').onclick = () => $('#scriptFile').click();
+$('#scriptFile').onchange = () => { $('#scriptFileName').textContent = $('#scriptFile').files[0]?.name || '未选择文件'; };
+$('#btnClearRefs').onclick = async () => {
+  if (!(state.refs || []).length) return;
+  if (!confirm(`确定清空全部 ${state.refs.length} 张参考图？（图片文件将被删除，角色表保留）`)) return;
+  await fetch('/api/refs/clear', {method: 'POST'});
+  refreshRefs();
+};
+$('#btnImportSheet').onclick = () => $('#sheetFile').click();
+$('#sheetFile').onchange = async () => {
+  const f = $('#sheetFile').files[0];
+  if (!f) return;
+  const fd = new FormData();
+  fd.append('file', f);
+  const r = await (await fetch('/api/refs/import', {method: 'POST', body: fd})).json();
+  $('#sheetFile').value = '';
+  if (r.detail) return alert(r.detail);
+  const lines = r.characters.map((c, i) => `${i + 1}. ${c.name}${c.has_image ? '' : '（缺图，将跳过）'}`);
+  const cur = (state.refs || []).length;
+  if (!confirm(`从「${r.sheet}」解析出 ${r.total} 个角色：\n\n${lines.join('\n')}\n\n` +
+      `⚠️ 确认后将替换现有 ${cur} 张参考图`)) return;
+  const c2 = await (await fetch('/api/refs/import/confirm', {method: 'POST',
+    headers: {'Content-Type': 'application/json'}, body: JSON.stringify({token: r.token})})).json();
+  if (c2.detail) return alert(c2.detail);
+  refreshRefs();
+};
+
+/* ---------- ① 剧本上传 → 8 组海报提示词 ---------- */
+$('#btnScript').onclick = async () => {
+  const f = $('#scriptFile').files[0];
+  if (!f) return alert('请先选择 .docx 剧本文件');
+  if (!(state.refs || []).length &&
+      !confirm('还没上传角色参考图，海报人物长相将由 AI 自由发挥（可能对不上你的角色形象）。\n确定继续吗？')) return;
+  const btn = $('#btnScript'); btn.disabled = true;
+  $('#scriptMsg').textContent = 'AI 正在通读剧本并设计 8 组海报方案…（约 60-90 秒）';
+  try {
+    const fd = new FormData();
+    fd.append('file', f);
+    fd.append('model', $('#posterModelSel').value);
+    const r = await (await fetch('/api/script', {method: 'POST', body: fd})).json();
+    if (r.detail) throw new Error(r.detail);
+    state.schemes = r.schemes;
+    state.posterTitle = r.character || '';
+    renderSchemes(r);
+    $('#scriptMsg').textContent = `已生成 ${r.schemes.length} 组方案｜剧名：${r.character}｜角色表已就绪（${r.roster_count ?? 0} 角色）`;
+    refreshRefs();  // 可能有 pending 参考图刚被补识别
+    CE('schemeCard').scrollIntoView({behavior: 'smooth'});
+  } catch (e) { $('#scriptMsg').textContent = '❌ ' + e.message; }
+  btn.disabled = false;
+};
+
+/* ---------- 进度卡（流水线并行：每个任务一条，互不覆盖） + 终止按钮 ---------- */
+const ACTIVE_STAGES = ['queued', 'navigating', 'dispatching', 'collecting', 'downloading'];
+const progMap = {};  // gid -> {percent, eta_seconds, index, total, stage, name, _at}
+
+function stageLabel(s) {
+  return {queued:'排队中', navigating:'打开页面', dispatching:'投递中',
+          collecting:'等待结果', downloading:'下载图片'}[s] || s;
+}
+function fmtEta(s) {
+  if (s == null) return null;
+  if (s < 60) return `${Math.max(1, Math.round(s))} 秒`;
+  const m = Math.floor(s / 60), r = Math.round(s % 60);
+  return r ? `${m} 分 ${r} 秒` : `${m} 分钟`;
+}
+function progLine(p) {
+  let txt = p.index && p.total
+    ? `第 ${p.index}/${p.total} 组 · ${stageLabel(p.stage)} · ${Math.round(p.percent || 0)}%`
+    : `${stageLabel(p.stage)} · ${Math.round(p.percent || 0)}%`;
+  const eta = fmtEta(p.eta_seconds);
+  txt += eta ? ` · 预计剩余 ${eta}` : '';
+  return txt;
+}
+function renderProgStack() {
+  const ids = Object.keys(progMap);
+  const stack = $('#progStack');
+  stack.classList.toggle('hidden', !ids.length);
+  stack.innerHTML = ids.map(id => {
+    const p = progMap[id];
+    return `<div class="prog-card"><div class="prog-head"><b>${escapeHtml(p.name || '生成任务')}</b><span>${progLine(p)}</span></div><div class="prog-bar"><div class="prog-fill" style="width:${p.percent || 0}%"></div></div></div>`;
+  }).join('');
+}
+function setProgress(p) {  // p 带任务 id
+  if (!p || !p.id) return;
+  progMap[p.id] = { ...(progMap[p.id] || {}), ...p, _at: Date.now() };
+  renderProgStack();
+}
+function clearProgress(gid) { delete progMap[gid]; renderProgStack(); }
+function clearAllProgress() { Object.keys(progMap).forEach(k => delete progMap[k]); renderProgStack(); }
+// 每秒滴答：两次服务端推送之间各任务分别平滑推进、剩余时间同步倒数（不越过本组阶段上限）
+setInterval(() => {
+  let dirty = false;
+  for (const id of Object.keys(progMap)) {
+    const p = progMap[id];
+    const dt = (Date.now() - p._at) / 1000;
+    if (dt < 1) continue;
+    const cap = p.total ? (p.index / p.total) * 100 : 95;
+    p.percent = Math.min((p.percent || 0) + dt * 0.3, cap);
+    if (p.eta_seconds != null) p.eta_seconds = Math.max(0, p.eta_seconds - dt);
+    p._at = Date.now();
+    dirty = true;
+  }
+  if (dirty) renderProgStack();
+}, 1000);
+
+$('#btnStop').onclick = async () => {
+  const btn = $('#btnStop');
+  btn.disabled = true;
+  $('#lastEvent').textContent = '⏹ 正在终止全部任务…';
+  try {
+    const r = await (await fetch('/api/stop', {method: 'POST'})).json();
+    $('#lastEvent').textContent = r.count ? `⏹ 已终止 ${r.count} 个任务` : '没有正在运行的任务';
+  } catch (e) {
+    $('#lastEvent').textContent = '❌ 终止指令发送失败：' + e.message;
+  }
+  clearAllProgress();
+  btn.disabled = false;
+  refreshGallery();
+};
+
+/* ---------- 角色卡列表（每次生成前由你选择用哪张卡） ---------- */
+async function loadCharacters() {
+  const sel = CE('charSelect');
+  sel.innerHTML = '<option value="">（正在从剧多多抓取角色卡…）</option>';
+  try {
+    const r = await (await fetch('/api/characters')).json();
+    if (r.detail) throw new Error(r.detail);
+    sel.innerHTML = '<option value="">— 请选择角色卡 —</option>' +
+      r.characters.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  } catch (e) {
+    sel.innerHTML = '<option value="">（抓取失败：' + e.message + '）</option>';
+  }
+  updateGenBtn();
+}
+function updateGenBtn() {
+  const ready = state.schemes.length && CE('charSelect').value;
+  const checked = CE('schemes').querySelectorAll('.scheme-check:checked').length;
+  CE('btnGenerate').disabled = !(ready && checked);
+  CE('btnGenAll').disabled = !ready;
+  CE('btnGenerate').textContent = checked ? `🚀 生成勾选方案（${checked} 组）` : '🚀 生成勾选方案';
+  // 勾选态可视化：未勾选的方案卡淡化为虚线（一眼分清哪些会参与生成）
+  CE('schemes').querySelectorAll('.scheme-check').forEach(c =>
+    c.closest('.scheme').classList.toggle('scheme-off', !c.checked));
+}
+$('#charSelect').addEventListener('change', updateGenBtn);
+$('#p_charSelect').addEventListener('change', updateGenBtn);
+$('#btnRefreshChars').onclick = loadCharacters;
+$('#p_btnRefreshChars').onclick = loadCharacters;
+
+/* ---------- 配置 ---------- */
+async function loadConfig() {
+  state.config = await (await fetch('/api/config')).json();
+  // 角色/海报两个模式的模型下拉互相独立，各自记忆上次选择
+  for (const [id, key] of [['#modelSel', 'modelSel_char'], ['#posterModelSel', 'modelSel_poster']]) {
+    const saved = localStorage.getItem(key);
+    const def = saved && state.config.models.includes(saved) ? saved : state.config.model;
+    $(id).innerHTML = state.config.models.map(m =>
+      `<option value="${m}" ${m === def ? 'selected' : ''}>${m}</option>`).join('');
+    $(id).onchange = () => localStorage.setItem(key, $(id).value);
+  }
+  // 每组张数下拉同样分模式记忆（4 张 = 点 1 次；6 张 = 3 张连点 2 次）
+  for (const [id, key] of [['#countPerGroup', 'countPerGroup_char'], ['#p_countPerGroup', 'countPerGroup_poster']]) {
+    const saved = localStorage.getItem(key);
+    if (saved && ['4', '6'].includes(saved)) $(id).value = saved;
+    $(id).onchange = () => localStorage.setItem(key, $(id).value);
+  }
+  $('#cfgline').textContent =
+    `v${state.config.version} ｜ 默认模型：${state.config.model}（key 来源：${state.config.key_source}）` +
+    (state.config.selectors_ready ? '' : '　⚠️ 页面选择器未校准，请先运行 bun run calibrate');
+}
+
+/* ---------- ① 生成提示词 ---------- */
+$('#btnPrompts').onclick = async () => {
+  const description = $('#descInput').value.trim();
+  if (!description) return alert('请先输入角色描述');
+  const count = +$('#countSel').value;
+  const btn = $('#btnPrompts'); btn.disabled = true;
+  $('#promptMsg').textContent = `AI 正在设计 ${count} 组造型方案…（约 30-60 秒）`;
+  try {
+    const r = await (await fetch('/api/prompts', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({description, model: $('#modelSel').value, count})
+    })).json();
+    if (r.detail) throw new Error(r.detail);
+    state.schemes = r.schemes;
+    renderSchemes(r);
+    $('#promptMsg').textContent = `已生成 ${r.schemes.length} 组方案`;
+  } catch (e) { $('#promptMsg').textContent = '❌ ' + e.message; }
+  btn.disabled = false;
+};
+
+function toneBadge(name) {
+  if (name.includes('亮调')) return '<span class="badge tone-light">☀️ 亮调</span>';
+  if (name.includes('暗调')) return '<span class="badge tone-dark">🌙 暗调</span>';
+  return '';
+}
+function renderSchemes(r) {
+  CE('schemeCard').classList.remove('hidden');
+  // 方案数据归入当前模式的槽位，切换模式时可原样恢复
+  state.ws[state.mode].data = { schemes: state.schemes, face_base: r.face_base || null, posterTitle: state.posterTitle };
+  if (r.face_base) {
+    CE('faceBase').classList.remove('hidden');
+    CE('faceBase').textContent =
+      (state.mode === 'poster' ? '剧本基调（各组共用）：' : '面部基底（各组共用）：') + r.face_base;
+  } else {
+    CE('faceBase').classList.add('hidden');
+  }
+  CE('schemes').innerHTML = r.schemes.map((s, i) => `
+    <div class="scheme" data-i="${i}">
+      <h3><label style="cursor:pointer;display:flex;align-items:center;gap:6px">
+        <input type="checkbox" class="scheme-check" data-i="${i}" checked style="width:16px;height:16px;accent-color:var(--pri);cursor:pointer">
+        方案${'一二三四五六七八九十'[i] || i+1}｜${s.name}${toneBadge(s.name)}
+      </label></h3>
+      <textarea data-i="${i}">${s.prompt}</textarea>
+      ${s.note ? `<div class="note">💡 ${s.note}</div>` : ''}
+    </div>`).join('');
+  CE('schemes').querySelectorAll('textarea').forEach(t => {
+    t.addEventListener('input', () => { state.schemes[+t.dataset.i].prompt = t.value; });
+  });
+  CE('schemes').querySelectorAll('.scheme-check').forEach(c => c.addEventListener('change', updateGenBtn));
+  updateGenBtn();
+  updateSteps();  // 场记板 ①② 状态
+}
+
+/* ---------- ② 提交生成（整批依次跑） ---------- */
+async function submitGenerate(prompts) {
+  const character_name = CE('charSelect').value;
+  if (!character_name) { CE('genMsg').textContent = '⚠️ 请先选择用哪张卡生成'; return; }
+  const count_per_group = +(CE('countPerGroup')?.value || 4);
+  const r = await (await fetch('/api/generate', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({prompts, character_name, kind: state.mode, count_per_group})
+  })).json();
+  if (r.detail) throw new Error(r.detail);
+  state.lastGen = r.generation_id;
+  state.ws[state.mode].lastGen = r.generation_id;
+  refreshGallery();
+}
+async function doGenerate(prompts) {
+  if (!prompts.length || !CE('charSelect').value) return;
+  CE('btnGenerate').disabled = true; CE('btnGenAll').disabled = true;
+  const cpg = +(CE('countPerGroup')?.value || 4);
+  CE('genMsg').textContent = `已提交 ${prompts.length} 组（每组 ${cpg} 张），浏览器将打开角色卡「${CE('charSelect').value}」依次自动操作…`;
+  try { await submitGenerate(prompts); }
+  catch (e) { CE('genMsg').textContent = '❌ ' + e.message; }
+  updateGenBtn();
+}
+// 只生成勾选的方案
+const onGenChecked = () => {
+  const checked = [...CE('schemes').querySelectorAll('.scheme-check:checked')].map(c => +c.dataset.i);
+  doGenerate(checked.map(i => state.schemes[i].prompt.trim()).filter(Boolean));
+};
+$('#btnGenerate').onclick = onGenChecked;
+$('#p_btnGenerate').onclick = onGenChecked;
+// 不管勾选状态，全部生成
+const onGenAll = () => {
+  doGenerate(state.schemes.map(s => s.prompt.trim()).filter(Boolean));
+};
+$('#btnGenAll').onclick = onGenAll;
+$('#p_btnGenAll').onclick = onGenAll;
+
+/* ---------- ③ 画廊 ---------- */
+function imgUrl(p) { return '/' + p; }
+
+async function refreshGallery() {
+  const r = await (await fetch('/api/generations')).json();
+  const all = r.items;
+  // 画廊只显示当前模式的记录（老数据无 kind 字段时按角色图处理）
+  const items = all.filter(g => (g.kind || 'character') === state.mode);
+  // 场记板 ③ 状态：当前模式候选图总数
+  state.imgCount = items.reduce((n, g) => n + (g.image_paths || []).length, 0);
+  updateSteps();
+  $('#gallery').innerHTML = items.length ? items.map(g => `
+    <div class="gen-block" data-gid="${g.id}">
+      <div class="gen-head">
+        <span class="caret" title="折叠/展开这组" onclick="toggleGroup('${g.id}')">${state.expanded.has(g.id) ? '▾' : '▸'}</span>
+        <span class="badge ${g.status}">${statusText(g)}</span>
+        ${g.kind === 'poster' ? '<span class="badge poster">🎬 海报</span>' : ''}
+        <b>${g.character_name || '未命名'}</b>
+        <span class="gen-prompt" title="${escapeHtml(g.prompt)}">${escapeHtml(g.prompt.slice(0, 60))}…</span>
+        <span>${new Date(g.created_at * 1000).toLocaleTimeString()}</span>
+        ${(g.status === 'failed' || g.status === 'cancelled') ? `<button class="ghost" onclick="retryGen('${g.id}')">重试</button>` : ''}
+        ${['done', 'failed', 'cancelled'].includes(g.status) ? `<button class="ghost" onclick="regen('${g.id}')">🔁 原提示词再生成</button>` : ''}
+        ${!ACTIVE_STAGES.includes(g.status) ? `<button class="ghost del" onclick="delGroup('${g.id}')">🗑 删除</button>` : ''}
+      </div>
+      <div class="group-body ${state.expanded.has(g.id) ? '' : 'hidden'}">
+        ${g.error ? `<div class="err">❌ ${escapeHtml(g.error)}${g.stage === 'auth' ? '（请运行 bun run login 重新登录）' : ''}</div>` : ''}
+        <div class="thumbs">
+          ${(g.image_paths || []).map(p => `
+            <div class="thumb ${state.picked.has(p) ? 'picked' : ''}">
+              <input type="checkbox" data-p="${p}" ${state.picked.has(p) ? 'checked' : ''}>
+              <img src="${imgUrl(p)}" loading="lazy" onclick="openBox('${imgUrl(p)}')">
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`).join('') : '<div class="sub">当前模式还没有生成记录</div>';
+  document.querySelectorAll('.thumb input').forEach(cb => {
+    cb.onchange = () => {
+      cb.checked ? state.picked.add(cb.dataset.p) : state.picked.delete(cb.dataset.p);
+      cb.closest('.thumb').classList.toggle('picked', cb.checked);
+      updateActionBar();
+    };
+  });
+  updateActionBar();
+  // 状态栏是全局的：任何模式有进行中/排队的任务都显示红色终止按钮；
+  // 顺带从服务端数据对齐各任务进度卡（页面刷新后不断档，多任务各一条）
+  const active = all.filter(g => ACTIVE_STAGES.includes(g.status));
+  $('#btnStop').classList.toggle('hidden', !active.length);
+  for (const g of active) {
+    const p = g.progress ? { ...g.progress } : { percent: 0, stage: g.status, index: 0, total: 0, eta_seconds: null };
+    p.name = g.character_name || (progMap[g.id] || {}).name;
+    progMap[g.id] = { ...(progMap[g.id] || {}), ...p, _at: Date.now() };
+  }
+  renderProgStack();
+}
+
+function statusText(g) {
+  return {queued:'排队中', navigating:'打开页面', dispatching:'投递中', collecting:'等待结果',
+          downloading:'下载图片', done:'✅ 完成', failed:'❌ 失败', cancelled:'⏹ 已终止'}[g.status] || g.status;
+}
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+window.openBox = src => { $('#lightboxImg').src = src; $('#lightbox').showModal(); };
+window.retryGen = async gid => { await fetch(`/api/generations/${gid}/retry`, {method: 'POST'}); refreshGallery(); };
+window.regen = async gid => {
+  const items = (await (await fetch('/api/generations')).json()).items;
+  const g = items.find(x => x.id === gid);
+  if (g) await submitGenerate((g.prompts && g.prompts.length) ? g.prompts : [g.prompt]);
+};
+/* 每组记录的折叠/展开：默认折叠，点 ▸ 展开（状态记在 state.expanded，5 秒轮询刷新后保持） */
+window.toggleGroup = gid => {
+  state.expanded.has(gid) ? state.expanded.delete(gid) : state.expanded.add(gid);
+  refreshGallery();
+};
+/* 删除整组：数据库记录 + 候选图文件一起删（已保存到「保存位置」的图是复制件，不受影响） */
+window.delGroup = async gid => {
+  const items = (await (await fetch('/api/generations')).json()).items;
+  const g = items.find(x => x.id === gid);
+  if (!g) return;
+  const n = (g.image_paths || []).length;
+  if (!confirm(`确定删除这组记录？\n角色：${g.character_name || '未命名'}　候选图：${n} 张\n候选图文件会一起删除；已保存的图不受影响。`)) return;
+  const r = await (await fetch(`/api/generations/${gid}/delete`, {method: 'POST'})).json();
+  if (r.detail) return alert(r.detail);
+  (g.image_paths || []).forEach(p => state.picked.delete(p));  // 清掉已失效的勾选
+  if (state.lastGen === gid) { state.lastGen = null; state.ws[state.mode].lastGen = null; }
+  state.expanded.delete(gid);
+  refreshGallery();
+};
+
+function updateActionBar() {
+  const has = state.picked.size > 0;
+  $('#btnSave').disabled = !has;
+  $('#btnRegen').disabled = !state.lastGen;
+  $('#btnEdit').disabled = !state.lastGen;
+  $('#saveMsg').textContent = has ? `已选 ${state.picked.size} 张` : '';
+}
+
+$('#btnRegen').onclick = () => state.lastGen && regen(state.lastGen);
+$('#btnEdit').onclick = async () => {
+  const items = (await (await fetch('/api/generations')).json()).items;
+  const g = items.find(x => x.id === state.lastGen);
+  if (!g) return;
+  const prompts = (g.prompts && g.prompts.length) ? g.prompts : [g.prompt];
+  state.schemes = prompts.map((p, i) => ({name: `上次提示词 ${i + 1}`, prompt: p, note: ''}));
+  renderSchemes({schemes: state.schemes});
+  CE('schemeCard').scrollIntoView({behavior: 'smooth'});
+};
+/* ---------- 保存位置选择框架 ---------- */
+const dirState = { current: null, parent: null };
+
+async function loadSaveDirs() {
+  const r = await (await fetch('/api/save-dirs')).json();
+  const sel = $('#saveDirSel');
+  sel.innerHTML = `<option value="default">默认（项目内 saved_images/）</option>` +
+    r.custom.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('') +
+    `<option value="__browse__">📁 浏览选择新位置…</option>`;
+  sel.value = (r.last !== 'default' && r.custom.includes(r.last)) ? r.last : 'default';
+}
+
+$('#saveDirSel').onchange = () => {
+  const v = $('#saveDirSel').value;
+  if (v === '__browse__') { openDirBrowser(); return; }
+  fetch('/api/save-dirs/last', {method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({path: v})});
+};
+
+async function openDirBrowser(path) {
+  const r = await (await fetch('/api/browse' + (path ? `?path=${encodeURIComponent(path)}` : ''))).json();
+  if (r.detail) { alert(r.detail); loadSaveDirs(); return; }
+  dirState.current = r.path; dirState.parent = r.parent;
+  if (!path) dirState.home = r.path;  // 无参调用返回主目录，记下来供快捷跳转用
+  $('#dirPath').textContent = r.path;
+  $('#dirList').innerHTML = r.dirs.length
+    ? r.dirs.map(d => `<div class="dir-item" data-d="${escapeHtml(d)}">📁 ${escapeHtml(d)}</div>`).join('')
+    : '<div class="sub" style="padding:8px">（此文件夹下没有子文件夹，可直接选择它）</div>';
+  document.querySelectorAll('.dir-item').forEach(el => {
+    el.onclick = () => openDirBrowser(dirState.current + '/' + el.dataset.d);
+  });
+  if (!$('#dirDialog').open) $('#dirDialog').showModal();
+}
+
+$('#dirUp').onclick = () => dirState.parent && openDirBrowser(dirState.parent);
+// 快捷跳转：主目录/桌面/下载/外置硬盘(/Volumes)
+document.querySelectorAll('.qj').forEach(b => b.onclick = () => {
+  const j = b.dataset.jump;
+  if (j === 'home') openDirBrowser();
+  else if (j === 'desktop') openDirBrowser((dirState.home || '/Users/apple') + '/Desktop');
+  else if (j === 'downloads') openDirBrowser((dirState.home || '/Users/apple') + '/Downloads');
+  else openDirBrowser(j);  // /Volumes 外置硬盘
+});
+$('#dirDialog').onclick = () => { $('#dirDialog').close(); loadSaveDirs(); };
+$('#btnCancelDir').onclick = () => { $('#dirDialog').close(); loadSaveDirs(); };
+$('#btnMkdir').onclick = async () => {
+  const name = $('#newDirName').value.trim();
+  if (!name) return;
+  const r = await (await fetch('/api/mkdir', {method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({path: dirState.current, name})})).json();
+  if (r.detail) return alert(r.detail);
+  $('#newDirName').value = '';
+  openDirBrowser(r.path);
+};
+$('#btnPickDir').onclick = async () => {
+  const r = await (await fetch('/api/save-dirs', {method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({path: dirState.current})})).json();
+  if (r.detail) return alert(r.detail);
+  $('#dirDialog').close();
+  await loadSaveDirs();
+  $('#saveDirSel').value = r.path;
+  $('#saveMsg').textContent = `保存位置：${r.path}`;
+};
+
+$('#btnSave').onclick = async () => {
+  const character_name = CE('charSelect').value || '未命名角色';
+  let dest_root = $('#saveDirSel').value;
+  if (dest_root === '__browse__') dest_root = 'default';
+  const r = await (await fetch('/api/save', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({image_paths: [...state.picked], character_name, dest_root})
+  })).json();
+  if (r.detail) return alert(r.detail);
+  $('#saveMsg').textContent = `✅ 已保存 ${r.saved.length} 张到 ${r.dest_dir}` +
+    (r.errors.length ? `（${r.errors.length} 张失败）` : '');
+  state.picked.clear();
+  updateActionBar();
+};
+
+/* ---------- ④ SSE 状态 ---------- */
+function connectSSE() {
+  const es = new EventSource('/api/events');
+  es.onopen = () => { $('#sseDot').classList.remove('off'); $('#sseText').textContent = '实时连接正常'; };
+  es.onerror = () => {
+    $('#sseDot').classList.add('off'); $('#sseText').textContent = '连接断开，3 秒轮询中…';
+    es.close(); setTimeout(connectSSE, 5000);
+  };
+  es.onmessage = e => {
+    const ev = JSON.parse(e.data);
+    if (ev.type === 'progress') {
+      setProgress(ev);  // 进度推送：百分比 + 预计剩余时间（按任务 id 各走各的）
+      return;
+    }
+    if (ev.type === 'collect_active') {
+      // 收集阶段在飞清单：给各进度卡补角色名与组数进度
+      (ev.active || []).forEach(a => {
+        const p = progMap[a.gen_id] || { percent: 0, _at: Date.now() };
+        p.name = a.name; p.index = a.done; p.total = a.total; p.stage = 'collecting';
+        progMap[a.gen_id] = p;
+      });
+      renderProgStack();
+      return;
+    }
+    if (ev.type !== 'status') return;
+    if (['done', 'failed', 'cancelled'].includes(ev.status)) clearProgress(ev.id);
+    $('#lastEvent').textContent = `[${new Date().toLocaleTimeString()}] ${statusText({status: ev.status})}` +
+      (ev.index ? `（第 ${ev.index}/${ev.total} 组）` : '') + (ev.error ? '：' + ev.error : '');
+    refreshGallery();
+  };
+}
+
+/* ---------- ④ 复审 · AI 扩图（海报模式） ---------- */
+const szState = { on: false };
+const SZ_HTML = '<div class="safezone"><div class="sz top"></div><div class="sz warnT"></div><div class="sz safe"></div><div class="sz warnB"></div><div class="sz bottom"></div></div>';
+
+$('#btnSafezone').onclick = () => {
+  szState.on = !szState.on;
+  $('#btnSafezone').textContent = `🛡 安全区：${szState.on ? '开' : '关'}`;
+  document.querySelectorAll('.safezone').forEach(el => el.classList.toggle('on', szState.on));
+};
+$('#btnOpenPending').onclick = () => fetch('/api/open-folder', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({which: 'pending'})});
+$('#btnOpenDone').onclick = () => fetch('/api/open-folder', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({which: 'done'})});
+
+async function refreshReview() {
+  if (state.mode !== 'poster' || !$('#reviewCard')) return;
+  const r = await (await fetch('/api/review/list')).json();
+  $('#reviewPending').innerHTML = (r.pending || []).map(p => `
+    <div class="rv">
+      <img src="/${p.src_path}" loading="lazy" onclick="openBox('/${p.src_path}')">
+      <button class="ghost qj" onclick="reviewReject('${p.id}')">↩️ 撤回</button>
+    </div>`).join('') || '<div class="sub">空</div>';
+  $('#reviewDone').innerHTML = (r.done || []).map(d => `
+    <div class="rv">
+      <img src="${d.url}" loading="lazy" onclick="openBox('${d.url}')">${SZ_HTML}
+      <button class="ok qj" onclick="reviewApprove('${d.file_name}')">✅ 采用</button>
+      <button class="ghost qj" onclick="reviewDeleteDone('${d.file_name}')">🗑 删除</button>
+    </div>`).join('') || '<div class="sub">空（剪映导出后自动出现在这里）</div>';
+  document.querySelectorAll('.safezone').forEach(el => el.classList.toggle('on', szState.on));
+  // 场记板 ④ 状态：待扩/已扩计数
+  state.reviewInfo = {p: (r.pending || []).length, d: (r.done || []).length};
+  updateSteps();
+}
+
+$('#btnToReview').onclick = async () => {
+  if (!state.picked.size) return alert('先在画廊勾选要扩图的候选海报');
+  const r = await (await fetch('/api/review/send', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({image_paths: [...state.picked], gen_id: state.lastGen || ''})
+  })).json();
+  if (r.detail) return alert(r.detail);
+  alert(`已把 ${r.sent} 张原图放入「待扩图」文件夹${r.capcut ? '，剪映已打开' : '（未检测到剪映专业版，请先安装）'}。\n\n剪映操作：把图拖入时间轴 → 画面 → 基础 → AI扩展 → 导出到「已扩图」文件夹。\n导出的图会自动出现在下方「已扩图」区。`);
+  state.picked.clear();
+  updateActionBar();
+  refreshReview();
+};
+
+window.reviewApprove = async fn => {
+  let dest_root = $('#saveDirSel').value;
+  if (dest_root === '__browse__') dest_root = 'default';
+  const r = await (await fetch('/api/review/approve', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({file_name: fn, title: state.posterTitle || '海报', dest_root})
+  })).json();
+  if (r.detail) return alert(r.detail);
+  $('#saveMsg').textContent = `✅ 扩后图已入成品库：${r.saved_path}`;
+  refreshReview();
+};
+window.reviewReject = async id => {
+  await fetch('/api/review/reject', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({id})});
+  refreshReview();
+};
+window.reviewDeleteDone = async fn => {
+  if (!confirm(`删除已扩图 ${fn}？`)) return;
+  await fetch('/api/review/delete-done', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({file_name: fn})});
+  refreshReview();
+};
+
+/* ---------- 轮询兜底（每 5s 刷新画廊与复审区，防止漏事件） ---------- */
+setInterval(() => { refreshGallery(); refreshReview(); }, 5000);
+
+loadConfig(); connectSSE(); refreshGallery(); loadCharacters(); loadSaveDirs();
+setMode(localStorage.getItem('mode') || 'character');
+</script>
+</body>
+</html>

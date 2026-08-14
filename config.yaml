@@ -1,0 +1,43 @@
+# 剧多多文生图自动化工作台配置
+
+llm:
+  # api_key 不填则自动从 Cherry Studio 数据库只读读取 AIOnly 的 key
+  # api_key: "sk-..."
+  base_url: "https://api.exchangetoken.ai/v1"
+  model: "gemini-3.6-flash"  # 可选：kimi-k3 / gemini-3.1-pro-preview / gemini-3.6-flash
+  models: ["kimi-k3", "gemini-3.1-pro-preview", "gemini-3.6-flash"]
+
+site:
+  # 剧多多项目流程页（指定网页指定窗口）
+  url: "https://cgpt.aictr.co/ai-drama-factory/project-management/flow?projectId=2069301900062412801&projectName=%E6%96%B0%E4%BA%BA%E5%9F%B9%E8%AE%AD%E4%B8%93%E7%94%A8&fromList=1&from=my-projects"
+  # ---- 页面选择器（已于 2026-08-10 校准）----
+  prompt_selector: "textarea.config-textarea"              # 创意描述输入框
+  submit_selector: "button.config-generate-btn"            # 立即生成按钮
+  result_container: "aside.asset-library-picker-history"   # 历史记录区容器
+  result_image_selector: "aside.asset-library-picker-history img.ant-image-img"  # 历史记录区图片
+  char_item: "button.char-item"                            # 角色栏里的角色卡按钮
+  char_name: "span.char-name"                              # 角色卡上的名字
+  # 卡片上的「打开面板」按钮（四格图标；眼睛图标是预览，不能点错）
+  card_open_button: 'button.action-btn.view:has(svg path[d^="M296 32h192"])'
+  login_check_selector: ""     # 登录后才会出现的元素（可选）
+  timeout_seconds: 360         # 等待生成完成的最长时间（带参考图的海报生成明显更慢）
+
+  # ---- 生成参数（角色面板里的模型与参数配置）----
+  model_name: "Gpt-Image-2"    # 图像模型（下拉选项：Nano Banana Pro / Gpt-Image-2 / Doubao-Seedream 等）
+  param_count: "4张"           # 张数（兜底值；界面「每组张数」选择优先：4张=点1次，6张=选3张连点2次）
+  param_ratio: "9:16(2k)"      # 比例(分辨率)：1:1(1k)/2:3(2k)/9:16(2k) 等
+  param_quality: "标准"        # 质量：自动/高质量/标准/快速
+
+browser:
+  profile_dir: "chrome-profile"
+  # true = 无窗口全后台运行：不弹 Chrome 窗口、不占桌面、不打断你其他工作。
+  # 改回 false 则恢复可视化窗口（方便观察排错）。登录态两种模式通用。
+  # 注意：bun run login / calibrate 会自动强制弹窗，不受此开关影响。
+  headless: true
+
+paths:
+  saved_dir: "saved_images"    # 确认保存的成品图
+  candidates_dir: "candidates" # 生成候选图（未确认的）
+  debug_dir: "debug"           # 失败截图与页面 dump
+  review_pending_dir: "review_pending"  # 待扩图（已送往剪映）
+  review_done_dir: "review_done"        # 已扩图（剪映导出，工作台自动扫描）
