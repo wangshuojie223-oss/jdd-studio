@@ -886,7 +886,9 @@ async function openDirBrowser(path) {
 
 $('#dirUp').onclick = () => dirState.parent && openDirBrowser(dirState.parent);
 // 快捷跳转：主目录/桌面/下载/外置硬盘(/Volumes)
-document.querySelectorAll('.qj').forEach(b => b.onclick = () => {
+// 注意：必须用 [data-jump] 选择器！.qj 只是小按钮的样式类（btnClearRefs 等也在用），
+// 用 .qj 会把那些按钮的 onclick 覆盖成目录跳转（清空参考图按钮曾因此失效并弹出保存位置窗口）。
+document.querySelectorAll('[data-jump]').forEach(b => b.onclick = () => {
   const j = b.dataset.jump;
   if (j === 'home') openDirBrowser();
   else if (j === 'desktop') openDirBrowser((dirState.home || '/Users/apple') + '/Desktop');

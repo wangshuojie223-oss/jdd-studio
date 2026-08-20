@@ -1,6 +1,6 @@
 [project]
 name = "jdd-studio"
-version = "2.2.2"
+version = "2.2.3"
 description = "剧多多文生图自动化工作台：角色设计 skill 生成提示词 → 浏览器自动填词生成 → 预览选择 → 保存"
 requires-python = ">=3.11"
 dependencies = [
