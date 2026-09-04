@@ -652,7 +652,7 @@ async function loadConfig() {
   }
   $('#cfgline').textContent =
     `v${state.config.version} ｜ 默认模型：${state.config.model}（key 来源：${state.config.key_source}）` +
-    (state.config.selectors_ready ? '' : '　⚠️ 页面选择器未校准，请先运行 bun run calibrate');
+    (state.config.selectors_ready ? '' : '　⚠️ 页面选择器未校准，请先运行 uv run python -m app.calibrate');
 }
 
 /* ---------- ① 生成提示词 ---------- */
@@ -770,7 +770,7 @@ async function refreshGallery() {
         ${!ACTIVE_STAGES.includes(g.status) ? `<button class="ghost del" onclick="delGroup('${g.id}')">🗑 删除</button>` : ''}
       </div>
       <div class="group-body ${state.expanded.has(g.id) ? '' : 'hidden'}">
-        ${g.error ? `<div class="err">❌ ${escapeHtml(g.error)}${g.stage === 'auth' ? '（请运行 bun run login 重新登录）' : ''}</div>` : ''}
+        ${g.error ? `<div class="err">❌ ${escapeHtml(g.error)}${g.stage === 'auth' ? '（请重新登录：工作台管家菜单 4）' : ''}</div>` : ''}
         <div class="thumbs">
           ${(g.image_paths || []).map(p => `
             <div class="thumb ${state.picked.has(p) ? 'picked' : ''}">

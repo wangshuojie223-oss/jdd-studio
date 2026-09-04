@@ -64,7 +64,18 @@ do_open() {
 # ---------- ④ 登录剧多多 ----------
 do_login() {
   has_uv || { echo "❌ 找不到运行环境（uv），请先选 6 做首次安装"; return 1; }
+  if is_running; then
+    echo "⚠️  工作台正在运行——登录要弹出新的 Chrome 窗口，但运行中的后台 Chrome 占着登录"
+    echo "    profile（同一时间只允许一个实例），直接登录会弹不出窗口。"
+    printf "先关闭工作台再继续登录吗？（进行中的生成任务会中断）[Y/n] "
+    read -r ans
+    case "$ans" in
+      [nN]*) echo "已取消。等手头任务跑完后，选 2 关闭再选 4 登录。"; return 1 ;;
+    esac
+    do_stop
+  fi
   uv run python -m app.login
+  echo "👉 登录完成后，选 1 重新启动工作台即可继续使用。"
 }
 
 # ---------- ⑤ 打包安装包 ----------

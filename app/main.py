@@ -637,7 +637,7 @@ async def generate(req: GenReq):
     if not req.character_name.strip():
         raise HTTPException(400, "请先选择角色卡")
     if not browser.is_configured():
-        raise HTTPException(400, "页面选择器未配置，请先运行 bun run calibrate 完成校准")
+        raise HTTPException(400, "页面选择器未配置，请先运行 uv run python -m app.calibrate 完成校准")
     if req.kind not in ("character", "poster"):
         raise HTTPException(400, f"非法的任务类型：{req.kind}")
     if req.count_per_group not in (4, 6):

@@ -1,6 +1,6 @@
 # 剧多多文生图自动化工作台 · jdd-studio
 
-**当前版本：v2.2.3**（版本号规则：每次更新都递增 VERSION / package.json / pyproject.toml / 本行，界面左上角自动显示）
+**当前版本：v2.2.4**（版本号规则：每次更新都递增 VERSION / package.json / pyproject.toml / 本行，界面左上角自动显示）
 
 > 面向短剧出海报/选角生产线的**桌面级自动化工作台**：把「自然语言创意 → AI 提示词工程 → 剧多多平台批量生成 → 原图抓取 → 画廊挑选 → 剪映扩图复审 → 成品归档」整条链路压缩到几次点击。
 
@@ -112,10 +112,10 @@
 命令行方式：
 
 ```bash
-bun run setup       # 首次：安装依赖（uv 自动拉 Python）
-bun run login       # 首次/登录态失效：弹出 Chrome 登录剧多多
-bun run calibrate   # 页面改版后：重新校准 config.yaml 选择器
-bun run start       # 启动服务 → http://127.0.0.1:8321
+uv sync                            # 首次：安装依赖（uv 自动拉 Python）
+uv run python -m app.login         # 首次/登录态失效：弹出 Chrome 登录剧多多（= 管家菜单 4；服务在运行时需先选 2 关闭，否则撞 profile 锁弹不出窗）
+uv run python -m app.calibrate     # 页面改版后：重新校准 config.yaml 选择器
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8321   # 启动服务 → http://127.0.0.1:8321（= 管家菜单 1）
 ```
 
 测试：`uv run --with pytest python -m pytest tests/ -q`（54 个用例）。

@@ -85,7 +85,7 @@ async def _report(cb, stage: str, **info):
 def _sel(key: str) -> str:
     v = config.get("site", key)
     if not v:
-        raise PipelineError(f"选择器 site.{key} 未配置，请先运行 bun run calibrate 校准", stage="config")
+        raise PipelineError(f"选择器 site.{key} 未配置，请先运行 uv run python -m app.calibrate 校准", stage="config")
     return v
 
 
@@ -93,10 +93,10 @@ def _sel(key: str) -> str:
 
 async def _check_login(page):
     if "login" in page.url.lower() or "signin" in page.url.lower():
-        raise PipelineError("页面跳转到登录页，登录态已失效，请重跑 bun run login", stage="auth")
+        raise PipelineError("页面跳转到登录页，登录态已失效，请重新登录（工作台管家菜单 4）", stage="auth")
     try:
         if await page.locator('input[type="password"]').count() > 0:
-            raise PipelineError("检测到登录表单，登录态已失效，请重跑 bun run login", stage="auth")
+            raise PipelineError("检测到登录表单，登录态已失效，请重新登录（工作台管家菜单 4）", stage="auth")
     except PipelineError:
         raise
     except Exception:
@@ -184,23 +184,46 @@ async def _open_character_card(page, name: str):
             raise PipelineError("创意描述输入框不可见（生成标签未激活）", stage="select")
 
 
+def _norm_model(s: str) -> str:
+    """模型名规范化：忽略大小写和空格/连字符/下划线差异。
+
+    防网站改名的表面花样（真实案例：Gpt-Image-2 → GPT Image 2，2026-09-04）。
+    """
+    return re.sub(r"[\s\-_]+", "", s).lower()
+
+
 async def _select_model(page, model_name: str):
-    """切换图像模型（如 Gpt-Image-2）。已是目标模型则跳过。"""
+    """切换图像模型（如 GPT Image 2）。已是目标模型则跳过。匹配经 _norm_model 规范化。"""
     sel = page.locator(".ant-select").first
     try:
         cur = await sel.inner_text()
-        if model_name.lower() in cur.lower():
+        if _norm_model(model_name) in _norm_model(cur):
             return
     except Exception:
         pass
     await sel.click()
     await page.wait_for_timeout(1200)
-    opt = page.locator(".ant-select-item-option", has_text=model_name).first
-    try:
-        await opt.click()
-    except Exception:
+    # 不用 has_text（对空格/连字符敏感），遍历选项做规范化子串匹配
+    opts = page.locator(".ant-select-item-option")
+    target = _norm_model(model_name)
+    available: list[str] = []
+    clicked = False
+    for i in range(await opts.count()):
+        try:
+            text = (await opts.nth(i).inner_text()).strip()
+        except Exception:
+            continue
+        available.append(text)
+        if not clicked and target in _norm_model(text):
+            await opts.nth(i).click()
+            clicked = True
+    if not clicked:
         await page.keyboard.press("Escape")
-        raise PipelineError(f"模型「{model_name}」不在下拉里，请检查 config.yaml 的 site.model_name", stage="config")
+        hint = f"，当前下拉选项：{' / '.join(available)}" if available else ""
+        raise PipelineError(
+            f"模型「{model_name}」不在下拉里{hint}，请检查 config.yaml 的 site.model_name",
+            stage="config",
+        )
     await page.wait_for_timeout(1500)
 
 

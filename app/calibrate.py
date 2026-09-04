@@ -1,6 +1,6 @@
 """页面校准工具：打开剧多多流程页，dump 候选元素 + 全页截图，帮助确定选择器。
 
-用法：uv run python -m app.calibrate   （或 bun run calibrate）
+用法：uv run python -m app.calibrate
 输出：debug/calibrate.json（元素清单）+ debug/calibrate.png（全页截图）
 """
 from __future__ import annotations

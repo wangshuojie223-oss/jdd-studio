@@ -23,7 +23,7 @@ site:
   timeout_seconds: 360         # 等待生成完成的最长时间（带参考图的海报生成明显更慢）
 
   # ---- 生成参数（角色面板里的模型与参数配置）----
-  model_name: "Gpt-Image-2"    # 图像模型（下拉选项：Nano Banana Pro / Gpt-Image-2 / Doubao-Seedream 等）
+  model_name: "GPT Image 2"    # 图像模型（2026-09-04 实测下拉选项：Midjourney / GPT Image 2 / Nano Banana / Nano Banana Pro / Nano Banana 2 / Doubao-Seedream；匹配忽略大小写和空格/连字符差异）
   param_count: "4张"           # 张数（兜底值；界面「每组张数」选择优先：4张=点1次，6张=选3张连点2次）
   param_ratio: "9:16(2k)"      # 比例(分辨率)：1:1(1k)/2:3(2k)/9:16(2k) 等
   param_quality: "标准"        # 质量：自动/高质量/标准/快速
@@ -32,7 +32,7 @@ browser:
   profile_dir: "chrome-profile"
   # true = 无窗口全后台运行：不弹 Chrome 窗口、不占桌面、不打断你其他工作。
   # 改回 false 则恢复可视化窗口（方便观察排错）。登录态两种模式通用。
-  # 注意：bun run login / calibrate 会自动强制弹窗，不受此开关影响。
+  # 注意：登录/校准工具（管家菜单 4）会自动强制弹窗，不受此开关影响。
   headless: true
 
 paths:

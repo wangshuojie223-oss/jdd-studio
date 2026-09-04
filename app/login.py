@@ -1,6 +1,6 @@
 """首次手动登录脚本：弹出 Chrome 打开剧多多，自动检测登录完成并固化登录态。
 
-用法：uv run python -m app.login   （或 bun run login）
+用法：uv run python -m app.login   （或双击 工作台管家.command 选菜单 4）
 流程：弹出窗口 → 用户在窗口内登录（扫码/密码均可）→ 脚本每 3 秒检测一次，
       检测到离开登录页且渲染出内容即保存登录态退出（最长等待 10 分钟）。
 """
@@ -67,7 +67,7 @@ async def main():
         if waited % 30 == 0:
             print(f"   …已等待 {waited}s，继续等你登录…")
 
-    print("\n⚠️  等待超时（10 分钟）。登录态可能未保存，请重跑 bun run login。")
+    print("\n⚠️  等待超时（10 分钟）。登录态可能未保存，请重新登录（工作台管家菜单 4）。")
     await page.close()
     await browser.close()
 
